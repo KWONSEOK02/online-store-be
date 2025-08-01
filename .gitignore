@@ -1,0 +1,16 @@
+# node_modules 디렉토리는 업로드 안 함
+node_modules/
+
+# 환경변수 파일
+.env
+
+# Jupyter 자동 저장 체크포인트 폴더
+.ipynb_checkpoints/
+
+# Jupyter Notebook 파일 전체 제외
+*.ipynbgit rm -r --cached node_modules
+
+# .zip 파일 전체 제외
+*.zip
+
+*.ipynb
