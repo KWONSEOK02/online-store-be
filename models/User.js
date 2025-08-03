@@ -34,7 +34,7 @@ userSchema.methods.toJSON = function () {
 };
 
 
-userSchema.methods.generateToken = function () {
+userSchema.methods.generateToken = function () { // 동기 함수
   const token = jwt.sign({ _id: this._id }, JWT_SECRET_KEY, { expiresIn: '1d' }); //expiresIn 토큰 유통기한 1d
   return token;
 };

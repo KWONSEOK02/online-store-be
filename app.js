@@ -7,7 +7,7 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS 설정
+//heroku CORS 설정
 const allowedOrigins = [
   'https://online-store-mall.netlify.app', // 배포 환경
   'http://localhost:3000'                  // 개발 환경
