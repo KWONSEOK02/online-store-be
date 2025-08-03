@@ -7,8 +7,12 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS 설정: Netlify에서 온 요청만 허용
-const allowedOrigins = ['https://online-store-mall.netlify.app'];
+// CORS 설정
+const allowedOrigins = [
+  'https://online-store-mall.netlify.app', // 배포 환경
+  'http://localhost:3000'                  // 개발 환경
+];
+
 
 app.use(cors({
   origin: function (origin, callback) {
