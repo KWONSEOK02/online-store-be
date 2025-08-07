@@ -33,9 +33,31 @@ productController.createProduct = async (req, res) => {
     await product.save();
     res.status(200).json({ status: "success", product });
   } catch (error) {
-    res.status(400).json({ status: "fail", error: error.message });
-  }
-};
+      // 1️ 스키마 유효성 검증 실패 (예: SKU 형식 오류 등)
+      if (error.name === 'ValidationError') {
+        const messages = Object.values(error.errors).map(err => err.message);
+        return res.status(400).json({
+          status: "fail",
+          message: messages.join('\n') // 여러 필드 오류 시 줄바꿈으로 전달
+        });
+      }
+    
+      // 2️ SKU 중복 오류 (MongoDB unique 제약 위반)
+      if (error.code === 11000 && error.keyPattern?.sku) {
+        return res.status(400).json({
+          status: "fail",
+          message: "이미 등록된 SKU입니다. 다른 값을 입력해주세요." //  message 키 사용
+        });
+      }
+    
+      // 3️ 그 외의 예외 (서버 오류 등)
+      return res.status(500).json({
+        status: "error",
+        message: error.message || "서버 오류가 발생했습니다."
+      });
+    }
+  };
+
 
 productController.getProducts = async(req, res)=>{
   try{
