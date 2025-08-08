@@ -1,5 +1,6 @@
 const { response } = require("express");
 const Product = require("../models/Product");
+const mongoose = require("mongoose");
 const PAGE_SIZE = 5;
 
 const productController = {};
@@ -109,9 +110,9 @@ productController.updateProduct = async (req, res) => {
 
     const product = await Product.findByIdAndUpdate(
       { _id: productId },
-      { sku, name, size, image, price, description, category, stock, status },
-      { new: true } // 업데이트된 문서를 반환하도록 설정 (기본값: 업데이트 전 문서)  { new: true }가 빠지면 업데이트 이전의 데이터 반환
-    );
+      { $set: {sku, name, size, image, price, description, category, stock, status} }, //set으로 하면 가능함?
+      { new: true} // 업데이트된 문서를 반환하도록 설정 (기본값: 업데이트 전 문서)  { new: true }가 빠지면 업데이트 이전의 데이터 반환
+    ); //runValidators: true 업데이트 시 유효성 검사  runValidators: true 넣으면 왜 수정이 안되는 것인가?
 
     if (!product) throw new Error("item doesn't exist");
 
@@ -139,5 +140,25 @@ productController.deleteProduct = async (req, res) => {
   }
 };
 
+productController.getProductById = async (req, res) => {
+  const productId = req.params.id; // catch에서도 사용해서 밖으로
+
+   // 1) ID 유효성 검사
+   if (!mongoose.Types.ObjectId.isValid(productId)) {
+    return res.status(400).json({ message: "유효하지 않은 상품 ID입니다." });
+  }
+  try {
+    // 2) 조회
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "상품을 찾을 수 없습니다." });
+    }
+     // 3) 성공
+    return res.status(200).json({ status: "success", data: product });
+  } catch (error) {
+     // 4) 서버 에러
+     return res.status(500).json({ status: "error", message: error.message });
+  }
+};
 
 module.exports = productController;

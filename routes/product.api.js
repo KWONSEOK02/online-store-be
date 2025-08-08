@@ -24,5 +24,11 @@ router.put(
     productController.deleteProduct
   );  // 소프트 삭제 
 
+  router.get(
+    "/:id",
+    productController.getProductById
+  ); // 개별 상품 가져오기
+  
+
 
 module.exports = router;

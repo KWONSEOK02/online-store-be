@@ -32,7 +32,17 @@ const productSchema = Schema({
   }, // 설명
   stock: { 
     type: Object, 
-    required: [true, '재고 정보를 입력해주세요.'] 
+    required: [true, '재고 정보를 입력해주세요.'],
+    validate: {
+      validator: function (value) {
+        if (typeof value !== 'object' || value === null) return false;
+  
+        return Object.values(value).every(qty => {
+          return Number.isInteger(qty) && qty >= 0;
+        });
+      },
+      message: '각 사이즈별 재고는 0 이상의 정수여야 합니다.'
+    } 
   }, // 재고
   category: { 
     type: Array, 
