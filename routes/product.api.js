@@ -10,5 +10,19 @@ router.post("/", authController.authenticate, authController.checkAdminPermissio
 
 router.get("/", productController.getProducts);
 
+router.put(
+    "/:id",
+    authController.authenticate,
+    authController.checkAdminPermission,
+    productController.updateProduct
+  );  // 업데이트  
+
+  router.delete( // 프론트엔드에서 호출시 겹치면 안되니 delete로 
+    "/:id",
+    authController.authenticate,
+    authController.checkAdminPermission,
+    productController.deleteProduct
+  );  // 소프트 삭제 
+
 
 module.exports = router;

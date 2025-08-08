@@ -62,7 +62,12 @@ productController.createProduct = async (req, res) => {
 productController.getProducts = async(req, res)=>{
   try{
     const {page, name} =req.query; // 퀴리에서 페이지와 이름 추출
-    const cond = name ? { name: { $regex: name, $options: 'i' } } : {};
+    //const cond = name ? {  isDeleted: false, name: { $regex: name, $options: 'i' } } : {};
+    const cond = {
+      isDeleted: false,
+      ...(name ? { name: { $regex: name, $options: 'i' } } : {}) 
+      //name이 값이 있으면 { name: { $regex: name, $options: 'i' } } 객체를 cond 안에 합침
+    }; //검색어가 없으면 삭제 여부 조건만 적용
     let query = Product.find(cond);
     let response = { status: "success" };
     if (page) {
@@ -96,5 +101,43 @@ productController.getProducts = async(req, res)=>{
     res.status(400).json({ status: "fail", error: error.message });
   }
 }
+
+productController.updateProduct = async (req, res) => {
+  try {
+    const productId = req.params.id; // URL 경로에서 id 파라미터를 가져옴
+    const { sku, name, size, image, price, description, category, stock, status } = req.body;
+
+    const product = await Product.findByIdAndUpdate(
+      { _id: productId },
+      { sku, name, size, image, price, description, category, stock, status },
+      { new: true } // 업데이트된 문서를 반환하도록 설정 (기본값: 업데이트 전 문서)  { new: true }가 빠지면 업데이트 이전의 데이터 반환
+    );
+
+    if (!product) throw new Error("item doesn't exist");
+
+    res.status(200).json({ status: "success", data: product });
+  } catch (error) {
+    res.status(400).json({ status: "fail", error: error.message });
+  }
+};
+
+// product.controller.js
+productController.deleteProduct = async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const updatedProduct = await Product.findByIdAndUpdate(
+      { _id: productId},
+      { isDeleted: true },
+      { new: true }
+    );
+    if (!updatedProduct) {
+      return res.status(404).json({ status: "fail", message: "상품을 찾을 수 없습니다." });
+    }
+    res.status(200).json({ status: "success", message: "상품 삭제 처리 완료" });
+  } catch (error) {
+    res.status(400).json({ status: "fail", error: error.message });
+  }
+};
+
 
 module.exports = productController;
