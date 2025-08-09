@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/auth.controller");
+const cartController = require("../controllers/cart.controller");
 
-router.post("/login", authController.loginWithEmail);
-// 로그인 유지용 사용자 정보 조회 API
+router.post("/",
+    authController.authenticate,
+     cartController.addItemToCart);
 
 module.exports = router;
