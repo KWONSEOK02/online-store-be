@@ -33,15 +33,19 @@ const productSchema = Schema({
   stock: { 
     type: Object, 
     required: [true, '재고 정보를 입력해주세요.'],
+    default: {}, //stock 필드를 비워두더라도 DB에 undefined가 아닌 빈 객체({})가 저장
     validate: {
       validator: function (value) {
         if (typeof value !== 'object' || value === null) return false;
   
-        return Object.values(value).every(qty => {
-          return Number.isInteger(qty) && qty >= 0;
+        const allowed = new Set(['XS', 'S', 'M', 'L', 'XL']);
+        return Object.entries(value).every(([size, qty]) => {
+          if (!allowed.has(size)) return false;  // 허용된 사이즈만 검사
+          const n = Number(qty);                 // "9" 같은 문자열도 숫자로 변환
+          return Number.isInteger(n) && n >= 0;  // 존재하는 키만 0 이상 정수 확인
         });
       },
-      message: '각 사이즈별 재고는 0 이상의 정수여야 합니다.'
+      message: '사이즈 추가시 재고는 0개 이상이어야 합니다.'
     } 
   }, // 재고
   category: { 
