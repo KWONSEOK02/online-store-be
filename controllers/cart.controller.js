@@ -37,4 +37,20 @@ cartController.addItemToCart = async (req, res) => {
   }
 };
 
+cartController.getCart = async (req, res) => {
+  try {
+    const { userId } = req;
+    const cart = await Cart.findOne({ userId }).populate({
+      path: "items",
+      populate: {
+        path: "productId",
+        model: "Product",
+      }, // items 밑에 있는 ,productId를 가지고 Product를 가져오기
+    }); // populate 로 외래 키 이용해 가져오기
+    res.status(200).json({ status: "success", data: cart.items });
+  } catch (error) {
+    return res.status(400).json({ status: "fail", error: error.message });
+  }
+};
+
 module.exports = cartController;
