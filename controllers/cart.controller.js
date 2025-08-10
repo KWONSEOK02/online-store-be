@@ -70,7 +70,7 @@ cartController.deleteCartItem = async (req, res) => {
   }
 };
 
-cartController.editCartItem = async (req, res) => {
+cartController.updateCartItemQty = async (req, res) => {
   try {
     const { userId } = req;
     const { id } = req.params; // 상품 id

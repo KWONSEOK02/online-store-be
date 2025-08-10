@@ -17,7 +17,7 @@ router.delete( // 삭제할 상품 카트에서의 id 제공
     authController.authenticate,
     cartController.deleteCartItem);
       
-router.put("/:id", authController.authenticate, cartController.editCartItem);
+router.put("/:id", authController.authenticate, cartController.updateCartItemQty);
 // 수정할 상품 카트에서의  id 제공
 
 router.get("/qty", authController.authenticate, cartController.getCartQty);
