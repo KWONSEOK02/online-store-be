@@ -35,7 +35,6 @@ authController.loginWithEmail = async (req, res) => {
     jwt.verify(token, JWT_SECRET_KEY, (error, payload) => { // 토큰 해석을 위한 비밀키 제공 
         if (error) {
           return res.status(401).json({ status: "fail", message: "유효하지 않은 토큰" });
-          //throw new Error("invalid token");
         }
         req.userId = payload._id;
       });
