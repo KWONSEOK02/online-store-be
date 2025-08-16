@@ -3,7 +3,7 @@ const router = express.Router();
 const authController = require("../controllers/auth.controller");
 const cartController = require("../controllers/cart.controller");
 
-//카트는 로그인을 해야 수정할 수 있어서 인증 필요
+ // 모든 엔드포인트는 인증 필요. :id 는 "카트 아이템(document) _id"를 의미
 router.post("/",
     authController.authenticate,
      cartController.addItemToCart);
@@ -11,14 +11,13 @@ router.post("/",
 router.get("/",
     authController.authenticate,
     cartController.getCart);
-
-router.delete( // 삭제할 상품 카트에서의 id 제공
+ 
+router.delete(
     "/:id",
     authController.authenticate,
     cartController.deleteCartItem);
       
 router.put("/:id", authController.authenticate, cartController.updateCartItemQty);
-// 수정할 상품 카트에서의  id 제공
 
 router.get("/qty", authController.authenticate, cartController.getCartQty);
 

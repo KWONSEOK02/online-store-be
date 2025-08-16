@@ -1,13 +1,13 @@
 const mongoose = require("mongoose");
 const Schema = mongoose.Schema;
-require('dotenv').config(); // dotenv	환경변수 파일을 읽어서 process.env에 로드하는 라이브러리
+require('dotenv').config();
 
 const productSchema = Schema({
   sku: { 
     type: String, 
     required: [true, 'SKU는 필수 입력 항목입니다.'], 
     unique: true,
-    validate: { //validate.validator 해당 필드값에 대해 유효성 검증을 수행하는 함수
+    validate: { 
       validator: function(value) {
         return /^sku/.test(value);  // 'sku'로 시작하는지 확인
       },
@@ -55,7 +55,7 @@ const productSchema = Schema({
   status: { 
     type: String, 
     default: "active" 
-  }, // 상태 (예: active, inactive)
+  }, // 상태
   isDeleted: { 
     type: Boolean, 
     default: false, 
@@ -65,9 +65,9 @@ const productSchema = Schema({
 
 productSchema.methods.toJSON = function () {
   const obj = this._doc;
-  delete obj.updatedAt; //  빼고 싶은 정보 임의 추가
+  delete obj.updatedAt;
   delete obj.createdAt;
-  delete obj.__v;  // 빼고 싶은 정보 임의 추가가
+  delete obj.__v;
   return obj;
 };
 

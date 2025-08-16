@@ -1,25 +1,25 @@
-const { response } = require("express");
 const Product = require("../models/Product");
 const mongoose = require("mongoose");
 const PAGE_SIZE = 5;
 
 const productController = {};
 
-const allowed = new Set(['XS','S','M','L','XL']);
 
-// stock 키 대문자화 + 수량 숫자화
+// 재고 입력 표준화 유틸
+// - 입력된 stock 객체의 키를 대문자로, 수량은 숫자로 변환
+// - 미승인(size whitelist) 여부는 "제품 스키마"에서 이미 검증/차단하므로 여기서는 표준화만 담당
 function normalizeStockKeys(stock) {
   const result = {};
   for (const [size, qty] of Object.entries(stock || {})) {
     const upper = size.toUpperCase();
-    result[upper] = Number(qty); // 숫자로 변환
+    result[upper] = Number(qty);
   }
   return result;
 }
 
-// -------------------- 생성 --------------------
 productController.createProduct = async (req, res) => {
   try {
+     // stock은 저장 전에 표준화(normalize)
     if (req.body.stock) req.body.stock = normalizeStockKeys(req.body.stock);
 
     const { sku, name, image, category, description, price, stock, status } = req.body;
@@ -34,6 +34,7 @@ productController.createProduct = async (req, res) => {
       const messages = Object.values(error.errors).map(e => e.message);
       return res.status(400).json({ status: "fail", message: messages.join('\n') });
     }
+    // SKU 유니크 충돌 확인
     if (error.code === 11000 && error.keyPattern?.sku) {
       return res.status(400).json({ status: "fail", message: "이미 등록된 SKU입니다. 다른 값을 입력해주세요." });
     }
@@ -41,9 +42,9 @@ productController.createProduct = async (req, res) => {
   }
 };
 
-// -------------------- 목록 --------------------
 productController.getProducts = async (req, res) => {
   try {
+     // 목록 조회: 소프트삭제 제외 + 이름 부분검색(대소문자 무시)
     const { page, name } = req.query;
     const cond = {
       isDeleted: false,
@@ -52,6 +53,7 @@ productController.getProducts = async (req, res) => {
     let query = Product.find(cond);
     const response = { status: "success" };
 
+    // 페이지네이션
     if (page) {
       query = query.skip((page - 1) * PAGE_SIZE).limit(PAGE_SIZE);
       const totalItemNum = await Product.countDocuments(cond);
@@ -65,16 +67,15 @@ productController.getProducts = async (req, res) => {
   }
 };
 
-// -------------------- 수정 --------------------
 productController.updateProduct = async (req, res) => {
   try {
     const productId = req.params.id;
-
-    // 허용 필드만 업데이트(스키마에 없는 size 제거함) <== size 있으면 유효성 검사 통과 못함. 프론트에서 size 소문자로 보내는 거 대문자화 m->M 이런 식으로 사이즈 저장
+    // 화이트리스트 필드만 업데이트
     const allow = ['sku','name','image','price','description','category','stock','status'];
     const updates = {};
     for (const k of allow) if (k in req.body) updates[k] = req.body[k];
 
+    // stock 업데이트 시에도 표준화 적용
     if (updates.stock) {
       updates.stock = normalizeStockKeys(updates.stock);
     }
@@ -99,7 +100,7 @@ productController.updateProduct = async (req, res) => {
   }
 };
 
-// -------------------- 삭제(소프트) --------------------
+// 소프트 삭제: isDeleted 플래그만 true로 설정
 productController.deleteProduct = async (req, res) => {
   try {
     const productId = req.params.id;
@@ -117,9 +118,9 @@ productController.deleteProduct = async (req, res) => {
   }
 };
 
-// -------------------- 단건 조회 --------------------
 productController.getProductById = async (req, res) => {
   const productId = req.params.id;
+  // 개별 조회: 유효한 ObjectId인지 선검증
   if (!mongoose.Types.ObjectId.isValid(productId)) {
     return res.status(400).json({ message: "유효하지 않은 상품 ID입니다." });
   }
@@ -133,12 +134,12 @@ productController.getProductById = async (req, res) => {
 };
 
 
-// 검증과 차감이 병렬이면 재고가 있는 상품에서는 재고가 나가는 문제 검증과 차감 분리로 해결
-//-----------------재고 검증----------------
+// [재고 처리 정책]
+// - verifyStock: 요청 수량이 현재 재고를 초과하는지 확인(차감 없음)
+// - deductStock: 검증 통과 후 실제 차감 (여기서는 원자적 트랜잭션 아님 → 동시성은 주문 단계에서 보완)
+// - checkItemListStock: "전수 검증 → 일괄 차감"의 2단계 수행
 productController.verifyStock = async (item) => {
-  // 내가 사려는 아이템 재고 정보 들고오기
   const product = await Product.findById(item.productId);
-  // 내가 사려는 아이템 qty, 재고 비교
   const current = product?.stock?.[item.size] ?? 0;
 
   if (current < item.qty) {
@@ -148,22 +149,20 @@ productController.verifyStock = async (item) => {
   return { isVerify: true };
 };
 
-//----------------- 실제 차감(검증 통과 후만 호출)-----------------
 productController.deductStock = async (item) => {
   const product = await Product.findById(item.productId);
   const newStock = { ...product.stock };
-  newStock[item.size] -= item.qty; //새로운 stock에 정보 업데이트
+  newStock[item.size] -= item.qty; //검증 통과분에 한해 차감해서 새로운 stock에 정보 업데이트
   product.stock = newStock;
   await product.save();
 };
 
 
 productController.checkItemListStock = async (itemList) => {
-  // 1. 전수 검증
+  // 1) 전수 검증 단계(재고 부족 항목 확인)
   const insufficientStockItems = [] // 재고가 불충분한 아이템을 저장
 
-
-  await Promise.all( // 비동기 여러 개를 한번에 처리(병렬 실행)
+  await Promise.all(
     itemList.map(async(item) => {
       const stockCheck = await productController.verifyStock(item);
         if(!stockCheck.isVerify){
@@ -173,11 +172,12 @@ productController.checkItemListStock = async (itemList) => {
     })
   );
 
+   // 부족한 항목이 있으면 검증 실패 목록 반환(차감하지 않음)
   if(insufficientStockItems.length > 0){ 
     return insufficientStockItems;
   }
-   // 2. 일괄 차감
-   await Promise.all( // 비동기 여러 개를 한번에 처리(병렬 실행)
+   // 2) 일괄 차감 단계(검증 통과 케이스)
+   await Promise.all(
     itemList.map(async(item) => productController.deductStock(item)));
   return insufficientStockItems;
 };

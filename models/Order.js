@@ -3,7 +3,7 @@ const Cart = require("./Cart");
 const Schema = mongoose.Schema;
 const orderSchema = Schema(
   {
-    userId: { type: mongoose.ObjectId, ref: "User",required: true }, // 문자열로 참조하는 것과 모델 객체 직접 참조의 장단점은?
+    userId: { type: mongoose.ObjectId, ref: "User",required: true }, 
     status: { type: String, default: "preparing" },
     totalPrice: { type: Number, required: true, default: 0 },
     shipTo: { type: Object, required: true },
@@ -28,7 +28,7 @@ orderSchema.methods.toJSON = function () {
 };
 
 orderSchema.post("save", async function () {
-  // 카트 비워주자
+  // 카트 비우기 기능
   const cart = await Cart.findOne({ userId: this.userId });
   if (!cart) return;
   cart.items = [];

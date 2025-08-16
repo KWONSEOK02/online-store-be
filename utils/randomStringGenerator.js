@@ -4,6 +4,6 @@ const randomStringGenerator = () => {
     ).join("");
 
     return randomString;
-}; // orderNum 만들 때 씀
+}; // 렌덤으로 orderNum 만들 때 사용
 
 module.exports = {randomStringGenerator};
